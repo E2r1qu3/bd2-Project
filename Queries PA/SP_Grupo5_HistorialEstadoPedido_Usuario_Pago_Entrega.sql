@@ -1,278 +1,287 @@
--- Ejecutar con la BD del proyecto seleccionada. Ajusta las longitudes de tipos a tus tablas.
-SET NOCOUNT ON;
+/* ==========================================================================
+   Proyecto Bases de Datos II - PedidosRestaurantes
+   Stored procedures CRUD: ventas.HistorialEstadoPedido, seguridad.Usuario, ventas.Pago, ventas.Entrega
+   Requiere: Bd/PedidosRest.sql ejecutado antes.
+   Cada SP se crea dentro del esquema de su tabla para que rol_api pueda ejecutarlo.
+   ========================================================================== */
+USE PedidosRestaurantes;
 GO
 
--- ===== HistorialEstadoPedido =====
-IF OBJECT_ID('sp_ObtenerHistorialEstadoPedido','P') IS NOT NULL DROP PROCEDURE sp_ObtenerHistorialEstadoPedido;
-GO
-CREATE PROCEDURE sp_ObtenerHistorialEstadoPedido
+-- ===== ventas.HistorialEstadoPedido =====
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerHistorialEstadoPedido
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio FROM HistorialEstadoPedido;
+    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio, Comentario
+    FROM ventas.HistorialEstadoPedido
+    ORDER BY HistorialId;
 END
 GO
 
-IF OBJECT_ID('sp_ObtenerHistorialEstadoPedidoPorId','P') IS NOT NULL DROP PROCEDURE sp_ObtenerHistorialEstadoPedidoPorId;
-GO
-CREATE PROCEDURE sp_ObtenerHistorialEstadoPedidoPorId
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerHistorialEstadoPedidoPorId
     @HistorialId BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio FROM HistorialEstadoPedido WHERE HistorialId = @HistorialId;
-END
-GO
-
-IF OBJECT_ID('sp_InsertarHistorialEstadoPedido','P') IS NOT NULL DROP PROCEDURE sp_InsertarHistorialEstadoPedido;
-GO
-CREATE PROCEDURE sp_InsertarHistorialEstadoPedido
-    @PedidoId INT,
-    @EstadoId TINYINT,
-    @FechaCambio DATETIME2,
-    @UsuarioId INT = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    INSERT INTO HistorialEstadoPedido (PedidoId, EstadoId, UsuarioId, FechaCambio) VALUES (@PedidoId, @EstadoId, @UsuarioId, @FechaCambio);
-    SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS Id;
-END
-GO
-
-IF OBJECT_ID('sp_ActualizarHistorialEstadoPedido','P') IS NOT NULL DROP PROCEDURE sp_ActualizarHistorialEstadoPedido;
-GO
-CREATE PROCEDURE sp_ActualizarHistorialEstadoPedido
-    @HistorialId BIGINT,
-    @PedidoId INT,
-    @EstadoId TINYINT,
-    @FechaCambio DATETIME2,
-    @UsuarioId INT = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE HistorialEstadoPedido
-    SET PedidoId = @PedidoId,
-        EstadoId = @EstadoId,
-        UsuarioId = @UsuarioId,
-        FechaCambio = @FechaCambio
+    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio, Comentario
+    FROM ventas.HistorialEstadoPedido
     WHERE HistorialId = @HistorialId;
 END
 GO
 
-IF OBJECT_ID('sp_EliminarHistorialEstadoPedido','P') IS NOT NULL DROP PROCEDURE sp_EliminarHistorialEstadoPedido;
-GO
-CREATE PROCEDURE sp_EliminarHistorialEstadoPedido
-    @HistorialId BIGINT
+CREATE OR ALTER PROCEDURE ventas.sp_InsertarHistorialEstadoPedido
+    @PedidoId INT,
+    @EstadoId TINYINT,
+    @UsuarioId INT = NULL,
+    @Comentario NVARCHAR(200) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    DELETE FROM HistorialEstadoPedido WHERE HistorialId = @HistorialId;
-END
-GO
+    INSERT INTO ventas.HistorialEstadoPedido (PedidoId, EstadoId, UsuarioId, Comentario)
+    VALUES (@PedidoId, @EstadoId, @UsuarioId, @Comentario);
 
--- ===== Usuario =====
-IF OBJECT_ID('sp_ObtenerUsuarios','P') IS NOT NULL DROP PROCEDURE sp_ObtenerUsuarios;
-GO
-CREATE PROCEDURE sp_ObtenerUsuarios
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT UsuarioId, Correo, ContrasenaHash, RolId, RestauranteId, SedeId, ClienteId FROM Usuario;
-END
-GO
-
-IF OBJECT_ID('sp_ObtenerUsuarioPorId','P') IS NOT NULL DROP PROCEDURE sp_ObtenerUsuarioPorId;
-GO
-CREATE PROCEDURE sp_ObtenerUsuarioPorId
-    @UsuarioId INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT UsuarioId, Correo, ContrasenaHash, RolId, RestauranteId, SedeId, ClienteId FROM Usuario WHERE UsuarioId = @UsuarioId;
-END
-GO
-
-IF OBJECT_ID('sp_InsertarUsuario','P') IS NOT NULL DROP PROCEDURE sp_InsertarUsuario;
-GO
-CREATE PROCEDURE sp_InsertarUsuario
-    @Correo NVARCHAR(150),
-    @ContrasenaHash VARBINARY(256),
-    @RolId TINYINT,
-    @RestauranteId INT = NULL,
-    @SedeId INT = NULL,
-    @ClienteId INT = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    INSERT INTO Usuario (Correo, ContrasenaHash, RolId, RestauranteId, SedeId, ClienteId) VALUES (@Correo, @ContrasenaHash, @RolId, @RestauranteId, @SedeId, @ClienteId);
     SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS Id;
 END
 GO
 
-IF OBJECT_ID('sp_ActualizarUsuario','P') IS NOT NULL DROP PROCEDURE sp_ActualizarUsuario;
-GO
-CREATE PROCEDURE sp_ActualizarUsuario
-    @UsuarioId INT,
-    @Correo NVARCHAR(150),
-    @ContrasenaHash VARBINARY(256),
-    @RolId TINYINT,
-    @RestauranteId INT = NULL,
-    @SedeId INT = NULL,
-    @ClienteId INT = NULL
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerHistorialPorPedido
+    @PedidoId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE Usuario
-    SET Correo = @Correo,
-        ContrasenaHash = @ContrasenaHash,
-        RolId = @RolId,
-        RestauranteId = @RestauranteId,
-        SedeId = @SedeId,
-        ClienteId = @ClienteId
+    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio, Comentario
+    FROM ventas.HistorialEstadoPedido
+    WHERE PedidoId = @PedidoId
+    ORDER BY FechaCambio, HistorialId;
+END
+GO
+
+-- ===== seguridad.Usuario =====
+CREATE OR ALTER PROCEDURE seguridad.sp_ObtenerUsuarios
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT UsuarioId, Correo, RolId, RestauranteId, SedeId, ClienteId, Activo, IntentosFallidos, UltimoAcceso, FechaCreacion
+    FROM seguridad.Usuario
+    ORDER BY UsuarioId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_ObtenerUsuarioPorId
+    @UsuarioId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT UsuarioId, Correo, RolId, RestauranteId, SedeId, ClienteId, Activo, IntentosFallidos, UltimoAcceso, FechaCreacion
+    FROM seguridad.Usuario
     WHERE UsuarioId = @UsuarioId;
 END
 GO
 
-IF OBJECT_ID('sp_EliminarUsuario','P') IS NOT NULL DROP PROCEDURE sp_EliminarUsuario;
+CREATE OR ALTER PROCEDURE seguridad.sp_InsertarUsuario
+    @Correo NVARCHAR(150),
+    @Contrasena NVARCHAR(128),
+    @RolId TINYINT,
+    @RestauranteId INT = NULL,
+    @SedeId INT = NULL,
+    @ClienteId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- La contraseña se encripta dentro de seguridad.sp_RegistrarUsuario (archivo SP_Autenticacion.sql).
+    EXEC seguridad.sp_RegistrarUsuario
+        @Correo = @Correo,
+        @Contrasena = @Contrasena,
+        @RolId = @RolId,
+        @RestauranteId = @RestauranteId,
+        @SedeId = @SedeId,
+        @ClienteId = @ClienteId;
+END
 GO
-CREATE PROCEDURE sp_EliminarUsuario
+
+CREATE OR ALTER PROCEDURE seguridad.sp_ActualizarUsuario
+    @UsuarioId INT,
+    @Correo NVARCHAR(150),
+    @RolId TINYINT,
+    @RestauranteId INT = NULL,
+    @SedeId INT = NULL,
+    @ClienteId INT = NULL,
+    @Activo BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- La contraseña no se cambia aquí: se usa seguridad.sp_CambiarContrasena.
+    UPDATE seguridad.Usuario
+    SET Correo = @Correo,
+        RolId = @RolId,
+        RestauranteId = @RestauranteId,
+        SedeId = @SedeId,
+        ClienteId = @ClienteId,
+        Activo = @Activo
+    WHERE UsuarioId = @UsuarioId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_EliminarUsuario
     @UsuarioId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DELETE FROM Usuario WHERE UsuarioId = @UsuarioId;
+    -- Borrado lógico: el usuario queda inactivo y ya no puede iniciar sesión.
+    UPDATE seguridad.Usuario
+    SET Activo = 0
+    WHERE UsuarioId = @UsuarioId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
 END
 GO
 
--- ===== Pago =====
-IF OBJECT_ID('sp_ObtenerPagos','P') IS NOT NULL DROP PROCEDURE sp_ObtenerPagos;
-GO
-CREATE PROCEDURE sp_ObtenerPagos
+-- ===== ventas.Pago =====
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerPagos
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PagoId, PedidoId, MetodoPagoId, Monto, Estado FROM Pago;
+    SELECT PagoId, PedidoId, MetodoPagoId, Monto, Estado, ReferenciaExterna, FechaPago
+    FROM ventas.Pago
+    ORDER BY PagoId;
 END
 GO
 
-IF OBJECT_ID('sp_ObtenerPagoPorId','P') IS NOT NULL DROP PROCEDURE sp_ObtenerPagoPorId;
-GO
-CREATE PROCEDURE sp_ObtenerPagoPorId
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerPagoPorId
     @PagoId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT PagoId, PedidoId, MetodoPagoId, Monto, Estado FROM Pago WHERE PagoId = @PagoId;
-END
-GO
-
-IF OBJECT_ID('sp_InsertarPago','P') IS NOT NULL DROP PROCEDURE sp_InsertarPago;
-GO
-CREATE PROCEDURE sp_InsertarPago
-    @PedidoId INT,
-    @MetodoPagoId TINYINT,
-    @Monto DECIMAL(10,2),
-    @Estado VARCHAR(20)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    INSERT INTO Pago (PedidoId, MetodoPagoId, Monto, Estado) VALUES (@PedidoId, @MetodoPagoId, @Monto, @Estado);
-    SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS Id;
-END
-GO
-
-IF OBJECT_ID('sp_ActualizarPago','P') IS NOT NULL DROP PROCEDURE sp_ActualizarPago;
-GO
-CREATE PROCEDURE sp_ActualizarPago
-    @PagoId INT,
-    @PedidoId INT,
-    @MetodoPagoId TINYINT,
-    @Monto DECIMAL(10,2),
-    @Estado VARCHAR(20)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE Pago
-    SET PedidoId = @PedidoId,
-        MetodoPagoId = @MetodoPagoId,
-        Monto = @Monto,
-        Estado = @Estado
+    SELECT PagoId, PedidoId, MetodoPagoId, Monto, Estado, ReferenciaExterna, FechaPago
+    FROM ventas.Pago
     WHERE PagoId = @PagoId;
 END
 GO
 
-IF OBJECT_ID('sp_EliminarPago','P') IS NOT NULL DROP PROCEDURE sp_EliminarPago;
+CREATE OR ALTER PROCEDURE ventas.sp_InsertarPago
+    @PedidoId INT,
+    @MetodoPagoId TINYINT,
+    @Monto DECIMAL(12,2),
+    @Estado VARCHAR(15) = 'Pendiente',
+    @ReferenciaExterna VARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO ventas.Pago (PedidoId, MetodoPagoId, Monto, Estado, ReferenciaExterna)
+    VALUES (@PedidoId, @MetodoPagoId, @Monto, @Estado, @ReferenciaExterna);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
 GO
-CREATE PROCEDURE sp_EliminarPago
+
+CREATE OR ALTER PROCEDURE ventas.sp_ActualizarPago
+    @PagoId INT,
+    @PedidoId INT,
+    @MetodoPagoId TINYINT,
+    @Monto DECIMAL(12,2),
+    @Estado VARCHAR(15),
+    @ReferenciaExterna VARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE ventas.Pago
+    SET PedidoId = @PedidoId,
+        MetodoPagoId = @MetodoPagoId,
+        Monto = @Monto,
+        Estado = @Estado,
+        ReferenciaExterna = @ReferenciaExterna
+    WHERE PagoId = @PagoId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE ventas.sp_EliminarPago
     @PagoId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DELETE FROM Pago WHERE PagoId = @PagoId;
+    DELETE FROM ventas.Pago
+    WHERE PagoId = @PagoId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
 END
 GO
 
--- ===== Entrega =====
-IF OBJECT_ID('sp_ObtenerEntregas','P') IS NOT NULL DROP PROCEDURE sp_ObtenerEntregas;
-GO
-CREATE PROCEDURE sp_ObtenerEntregas
+-- ===== ventas.Entrega =====
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerEntregas
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT EntregaId, PedidoId, ProveedorEntrega, Estado FROM Entrega;
+    SELECT EntregaId, PedidoId, ProveedorEntrega, CodigoSeguimiento, Estado, FechaSalida, FechaEntrega
+    FROM ventas.Entrega
+    ORDER BY EntregaId;
 END
 GO
 
-IF OBJECT_ID('sp_ObtenerEntregaPorId','P') IS NOT NULL DROP PROCEDURE sp_ObtenerEntregaPorId;
-GO
-CREATE PROCEDURE sp_ObtenerEntregaPorId
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerEntregaPorId
     @EntregaId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT EntregaId, PedidoId, ProveedorEntrega, Estado FROM Entrega WHERE EntregaId = @EntregaId;
-END
-GO
-
-IF OBJECT_ID('sp_InsertarEntrega','P') IS NOT NULL DROP PROCEDURE sp_InsertarEntrega;
-GO
-CREATE PROCEDURE sp_InsertarEntrega
-    @PedidoId INT,
-    @Estado VARCHAR(20),
-    @ProveedorEntrega NVARCHAR(100) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    INSERT INTO Entrega (PedidoId, ProveedorEntrega, Estado) VALUES (@PedidoId, @ProveedorEntrega, @Estado);
-    SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS Id;
-END
-GO
-
-IF OBJECT_ID('sp_ActualizarEntrega','P') IS NOT NULL DROP PROCEDURE sp_ActualizarEntrega;
-GO
-CREATE PROCEDURE sp_ActualizarEntrega
-    @EntregaId INT,
-    @PedidoId INT,
-    @Estado VARCHAR(20),
-    @ProveedorEntrega NVARCHAR(100) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE Entrega
-    SET PedidoId = @PedidoId,
-        ProveedorEntrega = @ProveedorEntrega,
-        Estado = @Estado
+    SELECT EntregaId, PedidoId, ProveedorEntrega, CodigoSeguimiento, Estado, FechaSalida, FechaEntrega
+    FROM ventas.Entrega
     WHERE EntregaId = @EntregaId;
 END
 GO
 
-IF OBJECT_ID('sp_EliminarEntrega','P') IS NOT NULL DROP PROCEDURE sp_EliminarEntrega;
+CREATE OR ALTER PROCEDURE ventas.sp_InsertarEntrega
+    @PedidoId INT,
+    @ProveedorEntrega NVARCHAR(60),
+    @CodigoSeguimiento VARCHAR(60) = NULL,
+    @Estado VARCHAR(15) = 'Asignada',
+    @FechaSalida DATETIME2(0) = NULL,
+    @FechaEntrega DATETIME2(0) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO ventas.Entrega (PedidoId, ProveedorEntrega, CodigoSeguimiento, Estado, FechaSalida, FechaEntrega)
+    VALUES (@PedidoId, @ProveedorEntrega, @CodigoSeguimiento, @Estado, @FechaSalida, @FechaEntrega);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
 GO
-CREATE PROCEDURE sp_EliminarEntrega
+
+CREATE OR ALTER PROCEDURE ventas.sp_ActualizarEntrega
+    @EntregaId INT,
+    @PedidoId INT,
+    @ProveedorEntrega NVARCHAR(60),
+    @CodigoSeguimiento VARCHAR(60) = NULL,
+    @Estado VARCHAR(15),
+    @FechaSalida DATETIME2(0) = NULL,
+    @FechaEntrega DATETIME2(0) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE ventas.Entrega
+    SET PedidoId = @PedidoId,
+        ProveedorEntrega = @ProveedorEntrega,
+        CodigoSeguimiento = @CodigoSeguimiento,
+        Estado = @Estado,
+        FechaSalida = @FechaSalida,
+        FechaEntrega = @FechaEntrega
+    WHERE EntregaId = @EntregaId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE ventas.sp_EliminarEntrega
     @EntregaId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DELETE FROM Entrega WHERE EntregaId = @EntregaId;
+    DELETE FROM ventas.Entrega
+    WHERE EntregaId = @EntregaId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
 END
 GO
+
