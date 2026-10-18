@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Permite correrlo aunque la compu tenga instalado .NET 9 o 10 en vez de 8 -->
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PedidosRestaurantes.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Conexión a SQL Server -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <!-- Ejecuta SP y convierte el resultado en objetos de C# -->
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <!-- Página /swagger para probar los endpoints -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+</Project>

@@ -78,3 +78,13 @@ EXEC seguridad.sp_Login @Correo = N'admin@artesanos.cr', @Contrasena = N'Prueba1
 | 50010 | Correo o contraseña incorrectos. |
 | 50011 | Cuenta bloqueada por intentos fallidos. |
 | 50012 | La contraseña actual no es correcta. |
+
+## API
+
+Proyecto ASP.NET Core en `Api/PedidosRestaurantes.Api`. Se conecta con `login_api_pedidos`, que solo puede ejecutar stored procedures.
+
+1. Copiar `appsettings.Development.example.json` como `appsettings.Development.json` y ajustar la conexión.
+2. `cd Api/PedidosRestaurantes.Api` y `dotnet run`.
+3. Abrir http://localhost:5080/swagger.
+
+La guía paso a paso está en `Api/GUIA_API.md`.
