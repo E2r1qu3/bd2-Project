@@ -1,0 +1,13 @@
+# Compilación de .NET
+bin/
+obj/
+
+# Configuración local de cada integrante (tiene la contraseña de su base)
+appsettings.Development.json
+
+# Editores y sistema
+.vs/
+.vscode/
+.idea/
+*.user
+.DS_Store
