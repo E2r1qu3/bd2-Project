@@ -1,7 +1,8 @@
 
 USE PedidosRestaurantes;
 GO
-
+SET QUOTED_IDENTIFIER ON;
+GO
 CREATE OR ALTER PROCEDURE ventas.sp_RegistrarPago
     @PedidoId INT,
     @MetodoPagoId TINYINT,
