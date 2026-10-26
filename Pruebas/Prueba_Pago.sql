@@ -1,78 +1,78 @@
-
+```sql
 USE PedidosRestaurantes;
 GO
 
 /*
+=====================================================
 R3 - MILA
-Procedimiento: ventas.sp_RegistrarPago
+Pruebas de ventas.sp_RegistrarPago
+=====================================================
 
 IMPORTANTE:
-Las pruebas se ejecutan por separado.
-El pedido 2 ya tiene un pago aprobado en la BD actual.
-No ejecutar las pruebas de nuevo sobre ese pedido sin
-preparar previamente datos de prueba independientes.
+- El pedido 2 ya tiene un pago aprobado.
+- No repetir la prueba exitosa sobre ese pedido.
+- Las pruebas de rollback y de pago exitoso se ejecutan
+  primero sobre datos independientes y preparados para
+  pruebas.
+- Este archivo no debe ejecutarse completo en la BD
+  actual porque algunas pruebas modifican información.
 */
 
--- =============================================
--- PRUEBA 1: ROLLBACK
--- Ejecutar solo con un pedido pendiente y sin pago
--- aprobado. UsuarioId 999 debe provocar un error
--- de FK al insertar el historial.
--- =============================================
+-- ===================================================
+-- PRUEBA 1: VALIDACIÓN DE MONTO INCORRECTO
+-- Resultado esperado: error 53003.
+-- No debe insertarse un pago.
+-- ===================================================
 
 /*
-DECLARE @PagosAntes INT;
-DECLARE @PagosDespues INT;
-
-SELECT @PagosAntes = COUNT(*)
-FROM ventas.Pago
-WHERE PedidoId = 2;
+Ejecutar solo si el pedido indicado existe y su total
+es distinto de 1.00. El pedido 2 cumple esta condición
+en la base de datos utilizada durante las pruebas.
+*/
 
 BEGIN TRY
     EXEC ventas.sp_RegistrarPago
         @PedidoId = 2,
         @MetodoPagoId = 2,
-        @Monto = 9718.00,
-        @ReferenciaExterna = 'PRUEBA-ROLLBACK',
-        @UsuarioId = 999;
+        @Monto = 1.00,
+        @ReferenciaExterna = 'PRUEBA-MONTO-INVALIDO',
+        @UsuarioId = 3;
 
-    PRINT N'ERROR: se esperaba un fallo de clave foránea.';
+    PRINT N'ERROR: se esperaba el error 53003.';
 END TRY
 BEGIN CATCH
-    PRINT N'Error esperado: ' + ERROR_MESSAGE();
+    IF ERROR_NUMBER() = 53003
+        PRINT N'PRUEBA CORRECTA: monto incorrecto rechazado.';
+    ELSE
+        PRINT N'ERROR INESPERADO: ' + ERROR_MESSAGE();
 END CATCH;
+GO
 
-SELECT @PagosDespues = COUNT(*)
-FROM ventas.Pago
-WHERE PedidoId = 2;
+-- ===================================================
+-- PRUEBA 2: ROLLBACK POR ERROR EN EL HISTORIAL
+-- Ejecutar únicamente con un pedido pendiente,
+-- sin pago aprobado, y datos de prueba independientes.
+-- Resultado esperado: la transacción se revierte y
+-- los conteos antes y después permanecen iguales.
+-- ===================================================
+
+/*
+Antes de ejecutar:
+1. Sustituir @PedidoPrueba por un pedido de prueba
+   pendiente, sin pagos aprobados.
+2. Confirmar que el usuario 999 no existe.
+3. Ajustar el monto al total real del pedido de prueba.
+4. Ejecutar esta prueba antes de la prueba exitosa.
+
+DECLARE @PedidoPrueba INT = NULL;
+DECLARE @MontoPrueba DECIMAL(12,2) = NULL;
+DECLARE @PagosAntes INT;
+DECLARE @PagosDespues INT;
+
+IF @PedidoPrueba IS NULL OR @MontoPrueba IS NULL
+BEGIN
+    PRINT N'Configurar un pedido de prueba independiente antes de ejecutar.';
+    RETURN;
+END;
 
 SELECT
-    @PagosAntes AS PagosAntes,
-    @PagosDespues AS PagosDespues;
-
-SELECT PedidoId, EstadoId
-FROM ventas.Pedido
-WHERE PedidoId = 2;
-GO
-*/
-
--- =============================================
--- PRUEBA 2: PAGO EXITOSO
--- Ya se ejecutó correctamente:
--- PagoId 4, pedido 2, monto 9718.00.
--- Se deja documentada para no duplicar el pago.
--- =============================================
-
-SELECT
-    p.PedidoId,
-    p.EstadoId,
-    p.Total,
-    pg.PagoId,
-    pg.Monto,
-    pg.Estado,
-    pg.ReferenciaExterna
-FROM ventas.Pedido AS p
-INNER JOIN ventas.Pago AS pg
-    ON pg.PedidoId = p.PedidoId
-WHERE p.PedidoId = 2;
-GO
