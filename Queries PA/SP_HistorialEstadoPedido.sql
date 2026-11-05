@@ -1,12 +1,21 @@
-/* CRUD con transacciones. Cada INSERT/UPDATE/DELETE va en BEGIN TRY + BEGIN TRANSACTION;
-   si algo falla, el CATCH hace ROLLBACK y relanza el error con THROW.
-   Errores propios: 54001 (el registro no existe), 54002 (ya existe el identificador).
-   Antes de ejecutar, compara los nombres con los SP que ya existen en Queries PA/:
-   CREATE OR ALTER reemplazaría uno con el mismo nombre. */
+/* ==========================================================================
+   Proyecto Bases de Datos II - PedidosRestaurantes
+   Stored procedures de la tabla ventas.HistorialEstadoPedido
+
+   CRUD: cada INSERT/UPDATE/DELETE va en una transacción (BEGIN TRY +
+   BEGIN TRANSACTION); si algo falla, el CATCH hace ROLLBACK y relanza el error.
+   Errores del CRUD: 54001 (el registro no existe), 54002 (el identificador ya existe).
+   Es una bitácora: solo se consulta e inserta, nunca se modifica ni se borra.
+   Requiere: Bd/PedidosRest.sql ejecutado antes.
+   ========================================================================== */
 USE PedidosRestaurantes;
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
--- ===== HistorialEstadoPedido =====
+-- ===== CRUD =====
+
 CREATE OR ALTER PROCEDURE ventas.sp_ObtenerHistorialEstadoPedido
 AS
 BEGIN
@@ -49,5 +58,17 @@ BEGIN
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
+END
+GO
+
+CREATE OR ALTER PROCEDURE ventas.sp_ObtenerHistorialPorPedido
+    @PedidoId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT HistorialId, PedidoId, EstadoId, UsuarioId, FechaCambio, Comentario
+    FROM ventas.HistorialEstadoPedido
+    WHERE PedidoId = @PedidoId
+    ORDER BY FechaCambio, HistorialId;
 END
 GO

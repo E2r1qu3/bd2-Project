@@ -1,12 +1,21 @@
-/* CRUD con transacciones. Cada INSERT/UPDATE/DELETE va en BEGIN TRY + BEGIN TRANSACTION;
-   si algo falla, el CATCH hace ROLLBACK y relanza el error con THROW.
-   Errores propios: 54001 (el registro no existe), 54002 (ya existe el identificador).
-   Antes de ejecutar, compara los nombres con los SP que ya existen en Queries PA/:
-   CREATE OR ALTER reemplazaría uno con el mismo nombre. */
+/* ==========================================================================
+   Proyecto Bases de Datos II - PedidosRestaurantes
+   Stored procedures de la tabla core.PlanSuscripcion
+
+   CRUD: cada INSERT/UPDATE/DELETE va en una transacción (BEGIN TRY +
+   BEGIN TRANSACTION); si algo falla, el CATCH hace ROLLBACK y relanza el error.
+   Errores del CRUD: 54001 (el registro no existe), 54002 (el identificador ya existe).
+   Eliminar hace borrado lógico (Activo = 0).
+   Requiere: Bd/PedidosRest.sql ejecutado antes.
+   ========================================================================== */
 USE PedidosRestaurantes;
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
--- ===== PlanSuscripcion =====
+-- ===== CRUD =====
+
 CREATE OR ALTER PROCEDURE core.sp_ObtenerPlanesSuscripcion
 AS
 BEGIN
@@ -101,7 +110,8 @@ BEGIN
             IF NOT EXISTS (SELECT 1 FROM core.PlanSuscripcion WHERE PlanId = @PlanId)
                 THROW 54001, N'PlanSuscripcion: el registro no existe.', 1;
 
-            DELETE FROM core.PlanSuscripcion WHERE PlanId = @PlanId;
+            -- Borrado lógico: el registro queda inactivo y se conserva su historial.
+            UPDATE core.PlanSuscripcion SET Activo = 0 WHERE PlanId = @PlanId;
             DECLARE @Filas INT = @@ROWCOUNT;
 
         COMMIT TRANSACTION;
