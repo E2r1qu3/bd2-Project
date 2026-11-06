@@ -1,12 +1,20 @@
-/* CRUD con transacciones. Cada INSERT/UPDATE/DELETE va en BEGIN TRY + BEGIN TRANSACTION;
-   si algo falla, el CATCH hace ROLLBACK y relanza el error con THROW.
-   Errores propios: 54001 (el registro no existe), 54002 (ya existe el identificador).
-   Antes de ejecutar, compara los nombres con los SP que ya existen en Queries PA/:
-   CREATE OR ALTER reemplazaría uno con el mismo nombre. */
+/* ==========================================================================
+   Proyecto Bases de Datos II - PedidosRestaurantes
+   Stored procedures de la tabla menu.ProductoSede
+
+   CRUD: cada INSERT/UPDATE/DELETE va en una transacción (BEGIN TRY +
+   BEGIN TRANSACTION); si algo falla, el CATCH hace ROLLBACK y relanza el error.
+   Errores del CRUD: 54001 (el registro no existe), 54002 (el identificador ya existe).
+   Requiere: Bd/PedidosRest.sql ejecutado antes.
+   ========================================================================== */
 USE PedidosRestaurantes;
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
--- ===== ProductoSede =====
+-- ===== CRUD =====
+
 CREATE OR ALTER PROCEDURE menu.sp_ObtenerProductosSede
 AS
 BEGIN
@@ -113,5 +121,33 @@ BEGIN
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
+END
+GO
+
+-- ===== Lógica de negocio =====
+
+-- --------------------------------------------------------------------------
+-- Menú disponible en una sede, con el precio final (precio de sede o base).
+-- --------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE menu.sp_ObtenerMenuPorSede
+    @SedeId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT c.CategoriaId,
+           c.Nombre AS Categoria,
+           p.ProductoId,
+           p.Nombre AS Producto,
+           p.Descripcion,
+           ISNULL(ps.PrecioSede, p.PrecioBase) AS Precio,
+           p.ImagenUrl
+    FROM menu.ProductoSede ps
+    JOIN menu.Producto  p ON p.ProductoId  = ps.ProductoId
+    JOIN menu.Categoria c ON c.CategoriaId = p.CategoriaId
+    WHERE ps.SedeId = @SedeId
+      AND ps.Disponible = 1
+      AND p.Activo = 1
+    ORDER BY c.Orden, p.Nombre;
 END
 GO

@@ -1,12 +1,21 @@
-/* CRUD con transacciones. Cada INSERT/UPDATE/DELETE va en BEGIN TRY + BEGIN TRANSACTION;
-   si algo falla, el CATCH hace ROLLBACK y relanza el error con THROW.
-   Errores propios: 54001 (el registro no existe), 54002 (ya existe el identificador).
-   Antes de ejecutar, compara los nombres con los SP que ya existen en Queries PA/:
-   CREATE OR ALTER reemplazaría uno con el mismo nombre. */
+/* ==========================================================================
+   Proyecto Bases de Datos II - PedidosRestaurantes
+   Stored procedures de la tabla menu.Producto
+
+   CRUD: cada INSERT/UPDATE/DELETE va en una transacción (BEGIN TRY +
+   BEGIN TRANSACTION); si algo falla, el CATCH hace ROLLBACK y relanza el error.
+   Errores del CRUD: 54001 (el registro no existe), 54002 (el identificador ya existe).
+   Eliminar hace borrado lógico (Activo = 0).
+   Requiere: Bd/PedidosRest.sql ejecutado antes.
+   ========================================================================== */
 USE PedidosRestaurantes;
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
--- ===== Producto =====
+-- ===== CRUD =====
+
 CREATE OR ALTER PROCEDURE menu.sp_ObtenerProductos
 AS
 BEGIN
@@ -110,7 +119,8 @@ BEGIN
             IF NOT EXISTS (SELECT 1 FROM menu.Producto WHERE ProductoId = @ProductoId)
                 THROW 54001, N'Producto: el registro no existe.', 1;
 
-            DELETE FROM menu.Producto WHERE ProductoId = @ProductoId;
+            -- Borrado lógico: el registro queda inactivo y se conserva su historial.
+            UPDATE menu.Producto SET Activo = 0 WHERE ProductoId = @ProductoId;
             DECLARE @Filas INT = @@ROWCOUNT;
 
         COMMIT TRANSACTION;
