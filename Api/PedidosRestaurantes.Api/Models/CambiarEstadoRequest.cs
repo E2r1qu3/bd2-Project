@@ -1,8 +1,9 @@
-﻿using System;
+﻿// CambiarEstadoRequest.cs
+namespace PedidosRestaurantes.Api.Models;
 
-public class Class1
+public class CambiarEstadoRequest
 {
-	public Class1()
-	{
-	}
+    public byte NuevoEstadoId { get; set; }
+    public int? UsuarioId { get; set; }
+    public string? Comentario { get; set; }
 }

@@ -1,8 +1,13 @@
-﻿using System;
+﻿// MenuItemDto.cs
+namespace PedidosRestaurantes.Api.Models;
 
-public class Class1
+public class MenuItemDto
 {
-	public Class1()
-	{
-	}
+    public int CategoriaId { get; set; }
+    public string Categoria { get; set; } = string.Empty;
+    public int ProductoId { get; set; }
+    public string Producto { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
+    public decimal Precio { get; set; }
+    public string? ImagenUrl { get; set; }
 }

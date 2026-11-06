@@ -1,8 +1,11 @@
-﻿using System;
+﻿// CancelarPedidoRequest.cs
+using System.ComponentModel.DataAnnotations;
 
-public class Class1
+namespace PedidosRestaurantes.Api.Models;
+
+public class CancelarPedidoRequest
 {
-	public Class1()
-	{
-	}
+    [Required]
+    public string Motivo { get; set; } = string.Empty;
+    public int? UsuarioId { get; set; }
 }
