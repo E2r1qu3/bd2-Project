@@ -1,27 +1,114 @@
 /* ==========================================================================
    Proyecto Bases de Datos II - PedidosRestaurantes
-   Stored procedures de autenticación (requisito de R2)
-     - seguridad.sp_RegistrarUsuario
-     - seguridad.sp_Login
-     - seguridad.sp_CambiarContrasena
-     - seguridad.sp_DesbloquearUsuario
+   Stored procedures de la tabla seguridad.Usuario
+
+   CRUD: cada INSERT/UPDATE/DELETE va en una transacción (BEGIN TRY +
+   BEGIN TRANSACTION); si algo falla, el CATCH hace ROLLBACK y relanza el error.
+   Errores del CRUD: 54001 (el registro no existe), 54002 (el identificador ya existe).
+   Errores de los SP de negocio: 50001-50012 (autenticación).
+   Eliminar hace borrado lógico (Activo = 0). La contraseña se guarda como hash SHA-512 con sal.
    Requiere: Bd/PedidosRest.sql ejecutado antes.
-
-   Cómo se guarda la contraseña:
-     - Por cada usuario se genera una sal aleatoria de 32 bytes con CRYPT_GEN_RANDOM.
-     - Se guarda HASHBYTES('SHA2_512', contraseña + sal). La contraseña nunca se guarda.
-     - Dos usuarios con la misma contraseña tienen hashes distintos por la sal.
-
-   Errores que devuelven (para que el API los traduzca a mensajes/códigos HTTP):
-     50001  El correo ya está registrado.
-     50002  La contraseña debe tener al menos 8 caracteres.
-     50003  El rol no corresponde con el restaurante, sede o cliente indicado.
-     50010  Correo o contraseña incorrectos.
-     50011  Cuenta bloqueada por intentos fallidos.
-     50012  La contraseña actual no es correcta.
    ========================================================================== */
 USE PedidosRestaurantes;
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+-- ===== CRUD =====
+
+CREATE OR ALTER PROCEDURE seguridad.sp_ObtenerUsuarios
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT UsuarioId, Correo, RolId, RestauranteId, SedeId, ClienteId, Activo, IntentosFallidos, UltimoAcceso, FechaCreacion FROM seguridad.Usuario;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_ObtenerUsuarioPorId
+    @UsuarioId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT UsuarioId, Correo, RolId, RestauranteId, SedeId, ClienteId, Activo, IntentosFallidos, UltimoAcceso, FechaCreacion FROM seguridad.Usuario WHERE UsuarioId = @UsuarioId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_InsertarUsuario
+    @Correo NVARCHAR(150),
+    @Contrasena NVARCHAR(128),
+    @RolId TINYINT,
+    @RestauranteId INT = NULL,
+    @SedeId INT = NULL,
+    @ClienteId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- La contraseña se encripta dentro de seguridad.sp_RegistrarUsuario (en este mismo archivo).
+    EXEC seguridad.sp_RegistrarUsuario
+        @Correo = @Correo,
+        @Contrasena = @Contrasena,
+        @RolId = @RolId,
+        @RestauranteId = @RestauranteId,
+        @SedeId = @SedeId,
+        @ClienteId = @ClienteId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_ActualizarUsuario
+    @UsuarioId INT,
+    @Correo NVARCHAR(150),
+    @RolId TINYINT,
+    @RestauranteId INT = NULL,
+    @SedeId INT = NULL,
+    @ClienteId INT = NULL,
+    @Activo BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- La contraseña no se cambia aquí: se usa seguridad.sp_CambiarContrasena.
+    UPDATE seguridad.Usuario
+    SET Correo = @Correo,
+        RolId = @RolId,
+        RestauranteId = @RestauranteId,
+        SedeId = @SedeId,
+        ClienteId = @ClienteId,
+        Activo = @Activo
+    WHERE UsuarioId = @UsuarioId;
+
+    SELECT @@ROWCOUNT AS FilasAfectadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE seguridad.sp_EliminarUsuario
+    @UsuarioId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+            IF NOT EXISTS (SELECT 1 FROM seguridad.Usuario WHERE UsuarioId = @UsuarioId)
+                THROW 54001, N'Usuario: el registro no existe.', 1;
+
+            -- Borrado lógico: el registro queda inactivo y se conserva su historial.
+            UPDATE seguridad.Usuario SET Activo = 0 WHERE UsuarioId = @UsuarioId;
+            DECLARE @Filas INT = @@ROWCOUNT;
+
+        COMMIT TRANSACTION;
+
+        SELECT @Filas AS FilasAfectadas;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+-- ===== Lógica de negocio =====
 
 -- --------------------------------------------------------------------------
 -- Registrar usuario: valida los datos, genera la sal y guarda el hash.
