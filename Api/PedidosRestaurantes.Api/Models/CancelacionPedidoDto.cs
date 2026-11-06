@@ -1,8 +1,10 @@
-﻿using System;
+﻿// CancelacionPedidoDto.cs
+namespace PedidosRestaurantes.Api.Models;
 
-public class Class1
+public class CancelacionPedidoDto
 {
-	public Class1()
-	{
-	}
+    public int PedidoId { get; set; }
+    public byte EstadoId { get; set; }
+    public string Estado { get; set; } = string.Empty;
+    public int PagosReembolsados { get; set; }
 }
