@@ -1,0 +1,25 @@
+ Interpretación de los planes de ejecución después de crear índices 
+
+Consulta 1: Pagos por pedido
+
+El plan de ejecución muestra un `Clustered Index Scan`. SQL Server recorre el índice agrupado de la tabla `ventas.Pago` para localizar los registros correspondientes al pedido solicitado.
+
+El índice no agrupado creado para `PedidoId` no fue seleccionado por el optimizador.
+
+Consulta 2: Historial de estados por pedido
+
+El plan muestra un `Clustered Index Scan`. SQL Server recorre el índice agrupado de `ventas.HistorialEstadoPedido` para encontrar los registros del pedido.
+
+El índice no agrupado creado para `PedidoId` no fue seleccionado por el optimizador.
+
+Consulta 3: Pedidos de un cliente existente
+
+El plan utiliza `Index Scan` sobre el índice no agrupado `IX_Pedido_ClienteId` y `Clustered Index Seek` para recuperar información adicional de los registros.
+
+Esto demuestra que el optimizador utilizó el índice creado para `ClienteId`.
+
+Conclusión
+
+Después de crear los tres índices, se observó que SQL Server utilizó el índice `IX_Pedido_ClienteId` en la tercera consulta. En las consultas de pagos e historial mantuvo el uso de `Clustered Index Scan`.
+
+Esto puede explicarse por el tamaño reducido de las tablas y la decisión del optimizador de consultas. La creación de un índice no garantiza que SQL Server lo utilice en todos los casos.
