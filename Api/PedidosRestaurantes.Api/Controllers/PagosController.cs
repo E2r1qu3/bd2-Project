@@ -1,8 +1,9 @@
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PedidosRestaurantes.Api.Data;
 using PedidosRestaurantes.Api.Models;
+using PedidosRestaurantes.Api.Services;
 
 namespace PedidosRestaurantes.Api.Controllers;
 
@@ -11,17 +12,25 @@ namespace PedidosRestaurantes.Api.Controllers;
 public class PagosController : ControllerBase
 {
     private readonly SqlExecutor _db;
+    private readonly AccesoPedidos _acceso;
 
-    public PagosController(SqlExecutor db)
+    public PagosController(SqlExecutor db, AccesoPedidos acceso)
     {
         _db = db;
+        _acceso = acceso;
     }
 
+    // POST api/pedidos/{id}/pago: el cliente dueño del pedido, o el empleado de la sede (pago en efectivo).
+    // El UsuarioId que queda en el historial sale del token, no del body.
+    [Authorize(Roles = Roles.Cliente + "," + Roles.EmpleadoSede)]
     [HttpPost]
     public async Task<IActionResult> RegistrarPago(
         int id,
         [FromBody] RegistrarPagoRequest request)
     {
+        if (!await _acceso.PuedeOperarAsync(id, User))
+            return StatusCode(403, new { mensaje = "No tiene permiso sobre este pedido." });
+
         try
         {
             var resultado = await _db.QuerySingleOrDefaultAsync<PagoResultado>(
@@ -32,7 +41,7 @@ public class PagosController : ControllerBase
                     request.MetodoPagoId,
                     request.Monto,
                     request.ReferenciaExterna,
-                    request.UsuarioId
+                    UsuarioId = User.UsuarioId()
                 });
 
             if (resultado is null)

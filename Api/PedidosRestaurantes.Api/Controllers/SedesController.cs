@@ -1,10 +1,13 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PedidosRestaurantes.Api.Data;
 using PedidosRestaurantes.Api.Models;
 
 namespace PedidosRestaurantes.Api.Controllers;
 
+// Abierto: cualquiera puede ver las sedes, sin iniciar sesión.
+[AllowAnonymous]
 [ApiController]
 [Route("api/sedes")]
 public class SedesController : ControllerBase
