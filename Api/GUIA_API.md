@@ -198,6 +198,7 @@ Guarden capturas de cada prueba: sirven para la guía de uso del API que pide el
 | `A network-related or instance-specific error` | SQL Server está apagado. En Mac: `docker start sqlserver-bd2` |
 | `Could not find stored procedure` | Falta ejecutar los archivos de `Queries PA` |
 | `The ConnectionString property has not been initialized` | No crearon `appsettings.Development.json` |
+| `Falta Jwt:Clave en appsettings.Development.json` | Falta la sección `Jwt` con la `Clave` en `appsettings.Development.json` (ver el `.example.json`; mínimo 32 caracteres) |
 
 ---
 
