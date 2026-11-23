@@ -1,0 +1,7 @@
+Tabla Indice
+----- ------
+HistorialEstadoPedido IX_HistorialEstadoPedido_PedidoId
+Pago IX_Pago_PedidoId
+Pedido IX_Pedido_ClienteId
+
+(3 rows affected)

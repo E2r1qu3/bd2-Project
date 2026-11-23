@@ -88,3 +88,49 @@ Proyecto ASP.NET Core en `Api/PedidosRestaurantes.Api`. Se conecta con `login_ap
 3. Abrir http://localhost:5080/swagger.
 
 La guía paso a paso está en `Api/GUIA_API.md`.
+
+## Índices y planes de ejecución (R4)
+
+Para evaluar el rendimiento de las consultas se seleccionaron tres consultas SQL y se capturaron sus planes de ejecución antes y después de crear índices no agrupados (NONCLUSTERED INDEX).
+
+### Índices creados
+
+| Índice | Tabla | Columna |
+|---|---|---|
+| IX_Pago_PedidoId | ventas.Pago | PedidoId |
+| IX_HistorialEstadoPedido_PedidoId | ventas.HistorialEstadoPedido | PedidoId |
+| IX_Pedido_ClienteId | ventas.Pedido | ClienteId |
+
+Los índices permiten organizar información adicional sobre las columnas utilizadas en las condiciones de búsqueda, facilitando el acceso a los registros.
+
+### Comparación de planes de ejecución
+
+Se analizaron las siguientes consultas:
+
+1. Búsqueda de pagos por pedido.
+2. Consulta del historial de estados de un pedido.
+3. Búsqueda de pedidos por cliente.
+
+Resultados obtenidos:
+
+| Consulta | Plan antes | Plan después |
+|---|---|---|
+| Pagos por pedido | Clustered Index Scan | Clustered Index Scan |
+| Historial por pedido | Clustered Index Scan | Clustered Index Scan |
+| Pedidos por cliente | Clustered Index Scan | Index Scan y Clustered Index Seek |
+
+### Análisis de resultados
+
+En las consultas de pagos e historial, SQL Server mantuvo el uso de Clustered Index Scan. Esto puede deberse a que las tablas contienen pocos registros y el optimizador considera que recorrerlas resulta conveniente.
+
+En la consulta de pedidos por cliente, el nuevo índice IX_Pedido_ClienteId aparece en el plan de ejecución mediante un Index Scan, acompañado de un Clustered Index Seek para recuperar los registros correspondientes.
+
+Los resultados demuestran que la creación de índices puede modificar el plan de ejecución, pero su utilización depende de las características de los datos y de las decisiones del optimizador de SQL Server.
+
+### Archivos de evidencia
+
+- `Queries PA/R4_Consultas.sql`: consultas utilizadas para capturar los planes.
+- `Queries PA/R4_Indices.sql`: creación de los índices.
+- `R4_Planes_Antes.txt`: planes de ejecución antes de crear los índices.
+- `R4_Planes_Despues.txt`: planes de ejecución después de crear los índices.
+- `R4_Crear_Indices.txt`: resultado de la ejecución del script de índices.
