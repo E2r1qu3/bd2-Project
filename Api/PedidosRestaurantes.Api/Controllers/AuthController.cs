@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PedidosRestaurantes.Api.Data;
@@ -19,6 +20,8 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
+    // POST api/auth/login: abierto, es donde se obtiene el token.
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
@@ -40,9 +43,25 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST api/auth/registro: solo administradores crean usuarios.
+    //   - AdminPlataforma: cualquier usuario.
+    //   - AdminRestaurante: solo administradores o empleados de su propio restaurante.
+    [Authorize(Roles = Roles.AdminPlataforma + "," + Roles.AdminRestaurante)]
     [HttpPost("registro")]
     public async Task<IActionResult> Registro(RegistroRequest request)
     {
+        if (User.IsInRole(Roles.AdminRestaurante))
+        {
+            bool rolPermitido = request.RolId is 2 or 3;
+            bool mismoRestaurante = request.RestauranteId == User.RestauranteId();
+
+            if (!rolPermitido || !mismoRestaurante)
+                return StatusCode(403, new
+                {
+                    mensaje = "Un administrador de restaurante solo puede crear administradores o empleados de su propio restaurante."
+                });
+        }
+
         try
         {
             var usuarioId = await _db.QuerySingleOrDefaultAsync<int>("seguridad.sp_RegistrarUsuario", request);

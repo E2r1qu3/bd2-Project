@@ -7,5 +7,4 @@ public class CancelarPedidoRequest
 {
     [Required]
     public string Motivo { get; set; } = string.Empty;
-    public int? UsuarioId { get; set; }
 }
