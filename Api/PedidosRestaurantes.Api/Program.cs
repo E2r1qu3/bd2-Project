@@ -41,8 +41,10 @@ builder.Services.AddSwaggerGen(c =>
 // 3. Servicios propios.
 //    SqlExecutor ejecuta los stored procedures (conexión en appsettings.Development.json).
 //    JwtService genera el token del login.
+//    AccesoPedidos revisa si el usuario del token puede operar sobre un pedido.
 builder.Services.AddSingleton<SqlExecutor>();
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<AccesoPedidos>();
 
 // 4. Autenticación con JWT: cómo se valida el token que llega en cada petición.
 var jwt = builder.Configuration.GetSection("Jwt");

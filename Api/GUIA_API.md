@@ -202,6 +202,29 @@ Guarden capturas de cada prueba: sirven para la guía de uso del API que pide el
 
 ---
 
+## Seguridad: JWT y permisos por rol
+
+`POST /api/auth/login` devuelve un `token`. En Swagger se pega en el botón **Authorize** (solo el token, sin la palabra Bearer) y desde ahí se manda en cada petición.
+
+| Endpoint | Quién puede usarlo |
+|---|---|
+| `POST /api/auth/login` | Todos, sin token |
+| `GET /api/sedes`, `GET /api/sedes/{id}`, `GET /api/sedes/{id}/menu` | Todos, sin token |
+| `POST /api/auth/registro` | AdminPlataforma; AdminRestaurante solo para admins o empleados de su restaurante |
+| `POST /api/restaurantes` | AdminPlataforma |
+| `POST /api/pedidos` | Cliente, solo con su propio `clienteId` |
+| `PUT /api/pedidos/{id}/estado` | EmpleadoSede (pedidos de su sede), AdminRestaurante (pedidos de su restaurante) |
+| `POST /api/pedidos/{id}/cancelar` | Cliente (sus pedidos), EmpleadoSede, AdminRestaurante |
+| `POST /api/pedidos/{id}/pago` | Cliente (sus pedidos), EmpleadoSede |
+
+- Sin token, o con un token vencido o alterado: **401**.
+- Con token, pero sin el rol o sin permiso sobre ese pedido: **403**.
+- El `usuarioId` que queda en el historial y en los pagos se toma del token, no del body.
+
+Usuarios de prueba (contraseña `Prueba123!`): `admin@pedidosrestaurantes.cr` (AdminPlataforma), `admin@artesanos.cr` (AdminRestaurante), `cocina.sanpedro@artesanos.cr` (EmpleadoSede de San Pedro), `maria.rodriguez@correo.cr` (Cliente 1).
+
+---
+
 ## Paso 7. Subirlo
 
 ```bash

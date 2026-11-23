@@ -1,26 +1,35 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PedidosRestaurantes.Api.Data;
 using PedidosRestaurantes.Api.Models;
+using PedidosRestaurantes.Api.Services;
 
 namespace PedidosRestaurantes.Api.Controllers;
 
 // Comparte la ruta api/pedidos con PedidosController y PagosController: ASP.NET los junta.
+// El UsuarioId que queda en el historial sale del token, no del body.
 [ApiController]
 [Route("api/pedidos")]
 public class EstadoPedidoController : ControllerBase
 {
     private readonly SqlExecutor _db;
+    private readonly AccesoPedidos _acceso;
 
-    public EstadoPedidoController(SqlExecutor db)
+    public EstadoPedidoController(SqlExecutor db, AccesoPedidos acceso)
     {
         _db = db;
+        _acceso = acceso;
     }
 
-    // PUT api/pedidos/{id}/estado
+    // PUT api/pedidos/{id}/estado: el personal de la sede o el admin de su restaurante.
+    [Authorize(Roles = Roles.EmpleadoSede + "," + Roles.AdminRestaurante)]
     [HttpPut("{id:int}/estado")]
     public async Task<IActionResult> CambiarEstado(int id, CambiarEstadoRequest request)
     {
+        if (!await _acceso.PuedeOperarAsync(id, User))
+            return StatusCode(403, new { mensaje = "No tiene permiso sobre este pedido." });
+
         try
         {
             var resultado = await _db.QuerySingleOrDefaultAsync<EstadoPedidoDto>(
@@ -29,7 +38,7 @@ public class EstadoPedidoController : ControllerBase
                 {
                     PedidoId = id,
                     request.NuevoEstadoId,
-                    request.UsuarioId,
+                    UsuarioId = User.UsuarioId(),
                     request.Comentario
                 });
 
@@ -45,17 +54,16 @@ public class EstadoPedidoController : ControllerBase
                 _ => BadRequest(cuerpo)      // 52002, 52004, 52005
             };
         }
-        catch (SqlException ex) when (ex.Number == 547)
-        {
-            // Llave foránea: por ejemplo, el usuarioId no existe (el SP ya deshizo todo).
-            return BadRequest(new { error = ex.Number, mensaje = "Un dato relacionado no existe (por ejemplo, el usuarioId)." });
-        }
     }
 
-    // POST api/pedidos/{id}/cancelar
+    // POST api/pedidos/{id}/cancelar: el cliente dueño del pedido, o el personal de la sede/restaurante.
+    [Authorize(Roles = Roles.Cliente + "," + Roles.EmpleadoSede + "," + Roles.AdminRestaurante)]
     [HttpPost("{id:int}/cancelar")]
     public async Task<IActionResult> Cancelar(int id, CancelarPedidoRequest request)
     {
+        if (!await _acceso.PuedeOperarAsync(id, User))
+            return StatusCode(403, new { mensaje = "No tiene permiso sobre este pedido." });
+
         try
         {
             var resultado = await _db.QuerySingleOrDefaultAsync<CancelacionPedidoDto>(
@@ -64,7 +72,7 @@ public class EstadoPedidoController : ControllerBase
                 {
                     PedidoId = id,
                     request.Motivo,
-                    request.UsuarioId
+                    UsuarioId = User.UsuarioId()
                 });
 
             return Ok(resultado);
@@ -78,10 +86,6 @@ public class EstadoPedidoController : ControllerBase
                 52012 => Conflict(cuerpo),   // ya está entregado o cancelado
                 _ => BadRequest(cuerpo)
             };
-        }
-        catch (SqlException ex) when (ex.Number == 547)
-        {
-            return BadRequest(new { error = ex.Number, mensaje = "Un dato relacionado no existe (por ejemplo, el usuarioId)." });
         }
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PedidosRestaurantes.Api.Data;
 using PedidosRestaurantes.Api.Models;
@@ -5,6 +6,8 @@ using PedidosRestaurantes.Api.Models;
 namespace PedidosRestaurantes.Api.Controllers;
 
 // Comparte la ruta api/sedes con SedesController; aquí solo va el menú.
+// Abierto: cualquiera puede ver el menú, sin iniciar sesión.
+[AllowAnonymous]
 [ApiController]
 [Route("api/sedes")]
 public class MenuController : ControllerBase
